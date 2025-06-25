@@ -10,11 +10,13 @@ import kotlin.jvm.JvmInline
  */
 public interface ToolResult {
     private companion object {
-        private val json = Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = true
-            explicitNulls = false
-            prettyPrint = true
+        private val json by lazy {
+            Json {
+                ignoreUnknownKeys = true
+                encodeDefaults = true
+                explicitNulls = false
+                prettyPrint = true
+            }
         }
     }
 
@@ -52,7 +54,8 @@ public interface ToolResult {
              * @param block A lambda that operates on a [StringBuilder] to construct the text content.
              * @return A [Text] instance containing the constructed string.
              */
-            public inline fun build(block: StringBuilder.() -> Unit): Text = Text(StringBuilder().apply(block).toString())
+            public inline fun build(block: StringBuilder.() -> Unit): Text =
+                Text(StringBuilder().apply(block).toString())
         }
 
         override fun toStringDefault(): String = text
@@ -79,12 +82,14 @@ public interface ToolResult {
              * It is used to signify a positive or affirmative condition.
              */
             public val TRUE: Boolean = Boolean(true)
+
             /**
              * Represents the boolean constant `false` in the custom `Boolean` value class.
              * It is a pre-defined instance of the `Boolean` type with its internal value set to `false`.
              */
             public val FALSE: Boolean = Boolean(false)
         }
+
         override fun toStringDefault(): String = result.toString()
     }
 
@@ -100,6 +105,90 @@ public interface ToolResult {
     public value class Number(public val result: kotlin.Number) : ToolResult {
         override fun toStringDefault(): String = result.toString()
     }
+
+    /**
+     * Represents an error that occurred during the execution of a tool operation.
+     * This interface is a sealed type, allowing specific error types to be defined and constrained.
+     */
+    public sealed interface Error : ToolResult {
+        /**
+         * Represents the instruction or message to be passed to the Language Learning Model (LLM)
+         * in the context of a specific error.
+         */
+        public val instructionToLLM: String
+
+        /**
+         * Represents an error that occurs when data cannot be cast to the desired type.
+         * Implements the `Error` interface and provides serialization capabilities through
+         * the `JSONSerializable` interface.
+         *
+         * @property data The tool arguments associated with this error.
+         * @property instructionToLLM Instructions or additional context passed to the LLM (Language Learning Model).
+         */
+        @Serializable
+        public data class NotCastable(
+            val data: ToolArgs,
+            override val instructionToLLM: String,
+        ) : JSONSerializable<NotCastable>, Error {
+            /**
+             * Provides the serializer for the `NotCastable` data class.
+             *
+             * @return The `KSerializer` for the `NotCastable` type.
+             */
+            override fun getSerializer(): KSerializer<NotCastable> = serializer()
+
+            /**
+             * Converts the current object to its JSON string representation using the default serialization mechanism.
+             *
+             * @return The JSON string representation of the object.
+             */
+            override fun toStringDefault(): String = json.encodeToString<NotCastable>(this)
+        }
+
+        /**
+         * Represents an error type indicating that incorrect arguments have been provided.
+         *
+         * This class is used to encapsulate error details when the provided `ToolArgs` are invalid
+         * for the intended operation.
+         *
+         * @property data The provided incorrect arguments encapsulated in the `ToolArgs` instance.
+         * @property instructionToLLM A descriptive instruction or message to be sent to the
+         * language model (LLM) describing the nature of the error.
+         */
+        @Serializable
+        public data class IncorrectArgs(
+            val data: ToolArgs,
+            override val instructionToLLM: String,
+        ) : JSONSerializable<IncorrectArgs>, Error {
+            /**
+             * Provides the serializer for the IncorrectArgs class.
+             *
+             * @return The KSerializer for the IncorrectArgs type.
+             */
+            override fun getSerializer(): KSerializer<IncorrectArgs> = serializer()
+
+            /**
+             * Converts the current IncorrectArgs object into its JSON string representation.
+             *
+             * @return A JSON string representation of the IncorrectArgs object.
+             */
+            override fun toStringDefault(): String = json.encodeToString<IncorrectArgs>(this)
+        }
+
+        /**
+         * Represents an error where the instruction to the Language Learning Model (LLM) is the primary
+         * form of the error message.
+         *
+         * This value class encapsulates a string that directly serves as the instruction for the LLM
+         * when an error occurs.
+         */
+        @JvmInline
+        @Serializable
+        public value class InstructionToLLM(override val instructionToLLM: String) : Error {
+            override fun toStringDefault(): String = instructionToLLM
+        }
+    }
+
 
     /**
      * Represents an interface that provides functionality for serializing implementing classes into JSON format

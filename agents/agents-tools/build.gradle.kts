@@ -13,6 +13,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
 
