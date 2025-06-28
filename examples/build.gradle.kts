@@ -114,6 +114,7 @@ registerRunExampleTask("runExampleJokesWithModeration", "ai.koog.agents.example.
 registerRunExampleTask("runExampleFilePersistentAgent", "ai.koog.agents.example.snapshot.FilePersistentAgentExampleKt")
 registerRunExampleTask("runExampleSQLPersistentAgent", "ai.koog.agents.example.snapshot.sql.SQLPersistentAgentExample")
 registerRunExampleTask("runExampleWebSearchAgent", "ai.koog.agents.example.websearch.WebSearchAgentKt")
+registerRunExampleTask("runExampleSmartToolsExample", "ai.koog.agents.example.smart_tools.SmartToolsExampleKt")
 
 dokka {
     dokkaSourceSets.named("main") {
