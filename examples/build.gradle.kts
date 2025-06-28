@@ -112,6 +112,7 @@ registerRunExampleTask("runExampleBedrockAgent", "ai.koog.agents.example.client.
 registerRunExampleTask("runExampleJokesWithModeration", "ai.koog.agents.example.moderation.JokesWithModerationKt")
 registerRunExampleTask("runExampleFilePersistentAgent", "ai.koog.agents.example.snapshot.FilePersistentAgentExampleKt")
 registerRunExampleTask("runExampleWebSearchAgent", "ai.koog.agents.example.websearch.WebSearchAgentKt")
+registerRunExampleTask("runExampleSmartToolsExample", "ai.koog.agents.example.smart_tools.SmartToolsExampleKt")
 
 dokka {
     dokkaSourceSets.named("main") {
