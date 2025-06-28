@@ -81,6 +81,7 @@ registerRunExampleTask("runExampleLoopComponent", "ai.koog.agents.example.compon
 registerRunExampleTask("runExampleInstagramPostDescriber", "ai.koog.agents.example.attachments.InstagramPostDescriberKt")
 registerRunExampleTask("runExampleRoutingViaGraph", "ai.koog.agents.example.banking.routing.RoutingViaGraphKt")
 registerRunExampleTask("runExampleRoutingViaAgentsAsTools", "ai.koog.agents.example.banking.routing.RoutingViaAgentsAsToolsKt")
+registerRunExampleTask("runExampleSmartToolsExample", "ai.koog.agents.example.smart_tools.SmartToolsExampleKt")
 registerRunExampleTask("runExampleFeatureOpenTelemetry", "ai.koog.agents.example.feature.OpenTelemetryKt")
 registerRunExampleTask("runExampleBedrockAgent", "ai.koog.agents.example.client.BedrockAgentKt")
 registerRunExampleTask("runExampleJokesWithModeration", "ai.koog.agents.example.moderation.JokesWithModerationKt")
