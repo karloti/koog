@@ -119,5 +119,5 @@ registerRunExampleTask("runExampleStreamingWithTools", "ai.koog.agents.example.s
 */
 
 // joke generation
-registerRunExampleTask("runExampleJokeAgentServer", "ai.koog.agents.example.a2a.joke.ServerKt")
-registerRunExampleTask("runExampleJokeAgentClient", "ai.koog.agents.example.a2a.joke.ClientKt")
+registerRunExampleTask("runExampleSimpleJokeAgentServer", "ai.koog.agents.example.a2a.simplejoke.ServerKt")
+registerRunExampleTask("runExampleSimpleJokeAgentClient", "ai.koog.agents.example.a2a.simplejoke.ClientKt")
