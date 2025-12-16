@@ -8,14 +8,18 @@ import ai.koog.agents.ext.tool.file.EditFileTool
 import ai.koog.agents.ext.tool.file.ListDirectoryTool
 import ai.koog.agents.ext.tool.file.ReadFileTool
 import ai.koog.agents.features.eventHandler.feature.handleEvents
+import ai.koog.agents.features.opentelemetry.attribute.CustomAttribute
+import ai.koog.agents.features.opentelemetry.feature.OpenTelemetry
+import ai.koog.agents.features.opentelemetry.integration.langfuse.addLangfuseExporter
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.rag.base.files.JVMFileSystemProvider
+import java.util.UUID
 
 val executor = simpleOpenAIExecutor(System.getenv("OPENAI_API_KEY"))
 val agent = AIAgent(
     promptExecutor = executor,
-    llmModel = OpenAIModels.Chat.GPT5Codex,
+    llmModel = OpenAIModels.Chat.GPT5_1Codex,
     toolRegistry = ToolRegistry {
         tool(ListDirectoryTool(JVMFileSystemProvider.ReadOnly))
         tool(ReadFileTool(JVMFileSystemProvider.ReadOnly))
@@ -29,14 +33,30 @@ val agent = AIAgent(
     strategy = singleRunStrategy(),
     maxIterations = 100
 ) {
+    val sessionId = UUID.randomUUID().toString()
+
     handleEvents {
         onToolCallStarting { ctx ->
             println(
-                "Tool '${ctx.tool.name}' called with args:" +
+                "Tool '${ctx.toolName}' called with args:" +
                     " ${ctx.toolArgs.toString().take(100)}"
             )
         }
     }
+    this.install(OpenTelemetry) {
+        addLangfuseExporter(
+            traceAttributes = listOf(
+                CustomAttribute("langfuse.session.id", sessionId),
+                CustomAttribute("langfuse.trace.tags", listOf("chat", "kotlin", "production"))
+            )
+        )
+//            addWeaveExporter(
+//                weaveOtelBaseUrl = "https://trace.wandb.ai/otel/v1/traces"
+//            )
+
+        setVerbose(true)
+    }
+
 }
 
 suspend fun main(args: Array<String>) {

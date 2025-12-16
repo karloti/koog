@@ -7,9 +7,9 @@ import ai.koog.agents.core.tools.reflect.ToolSet
 
 class UserTools(private val showUserMessage: suspend (String) -> String) : ToolSet {
     @Tool
-    @LLMDescription("Show user a message from the agent and wait for a response. Call this tool to ask the user something.")
+    @LLMDescription("Покажи на потребителя съобщение от агента и изчакай отговор. Използвай този инструмент, когато трябва да зададеш въпрос на потребителя.")
     suspend fun showMessage(
-        @LLMDescription("The message to show to the user.")
+        @LLMDescription("Съобщението, което да се покаже на потребителя.")
         message: String
     ): String {
         return showUserMessage(message)

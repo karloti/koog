@@ -506,4 +506,12 @@ public object OpenRouterModels : LLModelDefinitions {
         contextLength = 131_072,
         maxOutputTokens = 33_000,
     )
+
+    public val Grok_4_1_fast: LLModel = LLModel(
+        provider = LLMProvider.OpenRouter,
+        id = "x-ai/grok-4.1-fast",
+        capabilities = standardCapabilities + additionalCapabilities,
+        contextLength = 2_097_152,
+        maxOutputTokens = 30_720,
+    )
 }

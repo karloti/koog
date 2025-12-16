@@ -7,6 +7,8 @@ import ai.koog.a2a.transport.jsonrpc.model.JSONRPCRequest
 import ai.koog.a2a.transport.jsonrpc.model.JSONRPCResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.addDefaultResponseValidation
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.sse.SSE
@@ -33,7 +35,13 @@ import kotlinx.coroutines.flow.map
  */
 public class HttpJSONRPCClientTransport(
     url: String,
-    baseHttpClient: HttpClient = HttpClient()
+    baseHttpClient: HttpClient = HttpClient{
+        install(HttpTimeout) {
+            requestTimeoutMillis = 30000
+            connectTimeoutMillis = 10000
+            socketTimeoutMillis = 40000
+        }
+    }
 ) : JSONRPCClientTransport() {
     private val httpClient: HttpClient = baseHttpClient.config {
         defaultRequest {

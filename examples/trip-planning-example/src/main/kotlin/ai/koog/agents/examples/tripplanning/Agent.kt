@@ -20,12 +20,19 @@ import ai.koog.agents.examples.tripplanning.tools.WeatherTools
 import ai.koog.agents.examples.tripplanning.tools.addDate
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.agents.features.eventHandler.feature.handleEvents
+import ai.koog.agents.features.opentelemetry.attribute.CustomAttribute
+import ai.koog.agents.features.opentelemetry.feature.OpenTelemetry
+import ai.koog.agents.features.opentelemetry.integration.langfuse.addLangfuseExporter
 import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
+import ai.koog.prompt.executor.clients.bedrock.BedrockModels
+import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.markdown.markdown
-import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.xml.xml
+import java.util.UUID
 
 // UNUSED!
 fun createSimplePlannerAgent(
@@ -54,13 +61,14 @@ fun createSimplePlannerAgent(
         temperature = 0.3,
         toolRegistry = toolRegistry,
         systemPrompt = """
-            You are a trip planning agent that helps the user to plan their trip.
-            Use the information provided by the user to suggest the best possible trip plan.
+            Вие сте агент за планиране на пътувания, който помага на потребителя да планира своето пътуване.
+            Използвайте информацията предоставена от потребителя, за да предложите възможно най-добрия план за пътуване.
+            Отговаряй само на български език!
         """.trimIndent(),
         maxIterations = 200
     ) {
         handleEvents {
-            onToolCall { ctx ->
+            onToolCallStarting { ctx ->
                 onToolCallEvent(
                     "Tool ${ctx.tool.name}, args ${
                         ctx.toolArgs.toString().replace('\n', ' ').take(100)
@@ -78,7 +86,7 @@ fun createPlannerAgent(
     onToolCallEvent: (String) -> Unit,
     showMessage: suspend (String) -> String,
 ): AIAgent<UserInput, TripPlan> {
-    val googleMapTools = googleMapsMcpRegistry.tools
+    val sessionId = UUID.randomUUID().toString()
     val weatherTools = WeatherTools(openMeteoClient)
     val userTools = UserTools(
         showMessage,
@@ -91,26 +99,37 @@ fun createPlannerAgent(
         tools(userTools)
     } + googleMapsMcpRegistry
 
+    toolRegistry.tools.forEachIndexed { index, tool ->
+        println("tool[$index]: " + tool.name)
+    }
+
     val plannerStrategy = plannerStrategy(
-        googleMapsTools = googleMapTools,
+        googleMapsTools = googleMapsMcpRegistry.tools,
         addDateTool = ::addDate.asTool(),
         weatherTools = weatherTools,
         userTools = userTools,
     )
 
+
+    val bedrockModel: LLModel = BedrockModels.AnthropicClaude4_5Haiku.withInferenceProfile(BedrockInferencePrefixes.EU.prefix)
     val agentConfig = AIAgentConfig(
         prompt = prompt(
             "planner-agent-prompt",
-            params = LLMParams(temperature = 0.2)
         ) {
             system(
                 """
-                You are a trip planning agent that helps the user to plan their trip.
-                Use the information provided by the user to suggest the best possible trip plan.
+                Вие сте агент за планиране на пътувания, който помага на потребителя да планира своето пътуване.
+                Използвайте информацията предоставена от потребителя, за да предложите възможно най-добрия план за пътуване.
+                Отговаряй само на български език!
                 """.trimIndent()
             )
         },
-        model = OpenAIModels.Chat.GPT4o,
+//        model = OpenAIModels.Chat.GPT5Mini,
+//        model = GoogleModels.Gemini2_5Flash,
+//        model = GoogleModels.Gemini2_5Pro,
+//        model = BedrockModels.AnthropicClaude4_5Haiku.withInferenceProfile(BedrockInferencePrefixes.EU.prefix),
+//        model = BedrockModels.AnthropicClaude4_5Sonnet.withInferenceProfile(BedrockInferencePrefixes.EU.prefix),
+        model = bedrockModel,
         maxAgentIterations = 200
     )
 
@@ -122,13 +141,27 @@ fun createPlannerAgent(
         toolRegistry = toolRegistry,
     ) {
         handleEvents {
-            onToolCall { ctx ->
+            onToolCallStarting { ctx ->
                 onToolCallEvent(
                     "Tool ${ctx.tool.name}, args ${
                         ctx.toolArgs.toString().replace('\n', ' ').take(100)
                     }..."
                 )
             }
+        }
+
+        this.install(OpenTelemetry) {
+            addLangfuseExporter(
+                traceAttributes = listOf(
+                    CustomAttribute("langfuse.session.id", sessionId),
+                    CustomAttribute("langfuse.trace.tags", listOf("chat", "kotlin", "production"))
+                )
+            )
+//            addWeaveExporter(
+//                weaveOtelBaseUrl = "https://trace.wandb.ai/otel/v1/traces"
+//            )
+
+            setVerbose(true)
         }
     }
 }
@@ -148,10 +181,10 @@ private fun plannerStrategy(
     // Set additional system instructions
     val setup by node<UserInput, String> { userInput ->
         llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 system {
-                    +"Today's date is ${userInput.currentDate}."
-                    // +"User's timezone is ${userInput.timezone}."
+                    +"Днешната дата е ${userInput.currentDate}."
+                    +"Времевата зона на потребителя е ${userInput.timezone}."
                 }
             }
         }
@@ -165,7 +198,7 @@ private fun plannerStrategy(
         xml {
             tag("instructions") {
                 +"""
-                Clarify a user plan until the locations, dates and additional information, such as user preferences, are provided.    
+                Изяснявайте потребителския план докато не бъдат уточнени местата, датите и допълнителната информация като предпочитания.    
                 """.trimIndent()
             }
 
@@ -181,33 +214,32 @@ private fun plannerStrategy(
         xml {
             tag("instructions") {
                 markdown {
-                    h2("Requirements")
+                    h2("Изисквания")
                     bulleted {
-                        item("Suggest the plan for ALL days and ALL locations in the user plan, preserving the order.")
-                        item("Follow the user plan and provide a detailed step-by-step plan suggestion with multiple options for each date.")
-                        item("Consider weather conditions when suggesting places for each date and time to assess how suitable the activity is for the weather.")
-                        item("Check detailed information about each place, such as opening hours and reviews, before adding it to the final plan suggestion.")
+                        item("Предложете план за ВСИЧКИ дни и ВСИЧКИ места в потребителския план, запазвайки реда.")
+                        item("Следвайте потребителския план и предоставете подробно предложение за план стъпка по стъпка с множество опции за всяка дата.")
+                        item("Вземете предвид метеорологичните условия, когато предлагате места за всяка дата и час, за да прецените доколко дейността е подходяща за времето.")
+                        item("Проверете подробна информация за всяко място, като работно време и отзиви, преди да го добавите към окончателното предложение за план.")
                     }
 
-                    h2("Tool usage guidelines")
+                    h2("Указания за използване на инструментите")
                     +"""
-                    ALWAYS use "maps_search_places" tool to search for places, AVOID making your own suggestions.
-                    While searching for places, keep search query short and specific:
-                    Example DO: "museum", "historical museum", "italian restaurant", "coffee shop", "art gallery"
-                    Example DON'T: "interesting cultural sites", "local cuisine restaurants", "restaurant in the city center"
+                    ВИНАГИ използвайте инструмента "maps_search_places" за търсене на места, ИЗБЯГВАЙТЕ да правите собствени предложения.
+                    При търсене на места, пазете заявката кратка и конкретна:
+                    Пример ДА: "музей", "исторически музей", "италиански ресторант", "кафене", "галерия"
+                    Пример НЕ: "интересни културни обекти", "ресторанти с местна кухня", "ресторант в центъра на града"
                     """.trimIndent()
                     br()
 
                     """
-                    Use other "maps_*" tools to get more details about the place: reviews, opening hours, distances, etc.
+                    Използвай други "maps_*" инструменти за да получиш повече детайли за мястото: отзиви, работно време, разстояния и др.
                     """.trimIndent()
                     br()
 
                     """
-                    Use ${
+                    Използвай ${
                         weatherTools.asTools().joinToString(", ") { it.name }
-                    } tool for each date, requesting hourly granularity when you need to
-                    make a detailed itinerary.
+                    } инструмент за всяка дата, изисквайки почасова детайлност когато трябва да направиш подробен график.
                     """.trimIndent()
                 }
             }

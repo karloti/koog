@@ -8,13 +8,13 @@ import kotlinx.datetime.format
 import kotlinx.datetime.plus
 
 @Tool
-@LLMDescription("Add a duration to a date. Use this tool when you need to calculate offsets, such as tomorrow, in two days, yesterday.")
+@LLMDescription("Добави период към дата. Използвай този инструмент, когато трябва да изчислиш отмествания, като утре, след два дни, вчера.")
 fun addDate(
-    @LLMDescription("The date to add to in ISO format, e.g. 2022-01-01")
+    @LLMDescription("Датата, към която да се добави, в ISO формат, напр. 2022-01-01")
     date: String,
-    @LLMDescription("The number of days to add, defaults to 0")
+    @LLMDescription("Броят дни за добавяне, по подразбиране 0")
     days: Int = 0,
-    @LLMDescription("The number of months to add, defaults to 0")
+    @LLMDescription("Броят месеци за добавяне, по подразбиране 0")
     months: Int = 0,
 ): String = date.parseLocalDate()
     .plus(days, DateTimeUnit.DAY)

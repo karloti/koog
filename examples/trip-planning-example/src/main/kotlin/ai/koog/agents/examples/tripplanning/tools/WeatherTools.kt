@@ -16,25 +16,29 @@ import kotlinx.datetime.format.byUnicodePattern
 
 class WeatherTools(private val openMeteoClient: OpenMeteoClient) : ToolSet {
     @Tool
-    @LLMDescription("Get a weather forecast for a location and a date interval with a specified granularity.")
+    @LLMDescription("Вземи прогноза за времето за локация и интервал от време с определена детайлност.")
     suspend fun getWeatherForecast(
-        @LLMDescription("The location to get the weather forecast for (e.g., 'New York', 'London', 'Paris')")
+        @LLMDescription("Локацията, за която да се вземе прогнозата (напр. 'New York', 'London', 'Paris')")
         location: String,
-        @LLMDescription("ISO 3166-1 alpha-2 country code of the location (e.g., 'US', 'GB', 'FR')")
+        @LLMDescription("ISO 3166-1 alpha-2 код на държавата (напр. 'US', 'GB', 'FR')")
         countryCodeISO2: String,
-        @LLMDescription("Start of the interval (inclusive) to get the weather forecast for in ISO format (e.g., '2023-05-20').")
+        @LLMDescription("Начало на интервала (включително) за прогнозата в ISO формат (напр. '2023-05-20').")
         startDate: String,
-        @LLMDescription("End of the interval (inclusive) to get the weather forecast for in ISO format (e.g., '2023-05-20').")
+        @LLMDescription("Край на интервала (включително) за прогнозата в ISO формат (напр. '2023-05-20').")
         endDate: String,
-        @LLMDescription("The granularity of the forecast.")
+        @LLMDescription("Детайлност на прогнозата.")
         granularity: ForecastGranularity
-    ): String = weatherForecast(
-        location,
-        countryCodeISO2,
-        startDate.parseLocalDate(),
-        endDate.parseLocalDate(),
-        granularity
-    ).toString()
+    ): String = try {
+        weatherForecast(
+            location,
+            countryCodeISO2,
+            startDate.parseLocalDate(),
+            endDate.parseLocalDate(),
+            granularity
+        ).toString()
+    } catch (e: Exception) {
+        "There was an error calling the tool:\n${e.message}"
+    }
 
 
     sealed interface Forecast {

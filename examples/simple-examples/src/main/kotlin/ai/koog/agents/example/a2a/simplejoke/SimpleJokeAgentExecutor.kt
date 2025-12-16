@@ -11,9 +11,16 @@ import ai.koog.agents.a2a.core.toKoogMessage
 import ai.koog.agents.example.ApiKeyService
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
-import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.dashscope.DashscopeLLMClient
+import ai.koog.prompt.executor.clients.dashscope.DashscopeModels
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
 import ai.koog.prompt.executor.clients.google.GoogleLLMClient
+import ai.koog.prompt.executor.clients.mistralai.MistralAILLMClient
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterLLMClient
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.message.Message
@@ -25,9 +32,15 @@ import kotlin.uuid.Uuid
  */
 class SimpleJokeAgentExecutor : AgentExecutor {
     private val promptExecutor = MultiLLMPromptExecutor(
-        LLMProvider.OpenAI to OpenAILLMClient(ApiKeyService.openAIApiKey),
-        LLMProvider.Anthropic to AnthropicLLMClient(ApiKeyService.anthropicApiKey),
-        LLMProvider.Google to GoogleLLMClient(ApiKeyService.googleApiKey),
+        llmClients = arrayOf(
+            LLMProvider.OpenAI to OpenAILLMClient(ApiKeyService.openAIApiKey),
+            LLMProvider.Anthropic to AnthropicLLMClient(ApiKeyService.anthropicApiKey),
+            LLMProvider.Google to GoogleLLMClient(ApiKeyService.googleApiKey),
+            LLMProvider.MistralAI to MistralAILLMClient(ApiKeyService.mistralAIApiKey),
+            LLMProvider.Alibaba to DashscopeLLMClient(ApiKeyService.dashscopeApiKey),
+            LLMProvider.DeepSeek to DeepSeekLLMClient(ApiKeyService.deepseekApiKey),
+            LLMProvider.OpenRouter to OpenRouterLLMClient(ApiKeyService.openRouterApiKey),
+        ),
     )
 
     @OptIn(ExperimentalUuidApi::class)
@@ -57,7 +70,7 @@ class SimpleJokeAgentExecutor : AgentExecutor {
         }
 
         // Get a response from the LLM
-        val responseMessage = promptExecutor.execute(prompt, AnthropicModels.Sonnet_4)
+        val responseMessage = promptExecutor.execute(prompt, OpenAIModels.Chat.GPT5Mini)
             .single()
             .let { message ->
                 message as? Message.Assistant ?: throw IllegalStateException("Unexpected message type: $message")
