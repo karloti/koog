@@ -1,10 +1,8 @@
 package ai.koog.agents.example.calculator
 
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.ReceivedToolResults
-import ai.koog.agents.core.dsl.extension.asUserMessage
-import ai.koog.agents.core.dsl.extension.nodeExecuteToolsAndGetResults
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResults
@@ -72,11 +70,11 @@ object CalculatorStrategy {
 
     val strategy = strategy<String, String>("test") {
         val nodeCallLLM by nodeLLMRequest()
-        val nodeExecuteToolMultiple by nodeExecuteToolsAndGetResults(parallel = true)
+        val nodeExecuteToolMultiple by nodeExecuteTools(parallel = true)
         val nodeSendToolResultMultiple by nodeLLMSendToolResults()
         val nodeCompressHistory by nodeLLMCompressHistory<ReceivedToolResults>()
 
-        edge(nodeStart forwardTo nodeCallLLM asUserMessage { it })
+        edge(nodeStart forwardTo nodeCallLLM)
 
         edge(
             (nodeCallLLM forwardTo nodeFinish)

@@ -8,11 +8,9 @@ import ai.koog.agents.core.agent.entity.createStorageKey
 import ai.koog.agents.core.dsl.builder.AIAgentSubgraphBuilderBase
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithoutTools
-import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithoutToolsWithUserText
 import ai.koog.agents.core.dsl.extension.onIsInstance
 import ai.koog.agents.core.dsl.extension.onToolCalls
 import ai.koog.agents.core.tools.ToolRegistry
@@ -23,6 +21,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ai.koog.agents.core.dsl.builder.node
+import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResults
 import ai.koog.agents.core.dsl.extension.onTextMessage
 
 interface PlannerNode {
@@ -192,8 +191,8 @@ suspend fun planWork(
         }
 
         val callTool by nodeExecuteTools()
-        val askLLM by nodeLLMRequestWithoutToolsWithUserText()
-        val resumeAfterTool by nodeLLMRequestWithoutTools("resumeAfterTool")
+        val askLLM by nodeLLMRequestWithoutTools()
+        val resumeAfterTool by nodeLLMSendToolResults("resumeAfterTool")
 
         val buildPlanTree by node<Unit, Unit> {
             val tree = storage.get(currentNodeKey)?.builder?.build()
@@ -201,7 +200,7 @@ suspend fun planWork(
             result.complete(tree)
         }
 
-        edge(nodeStart forwardTo setup asUserMessage { it })
+        edge(nodeStart forwardTo setup)
         edge(setup forwardTo tryFindingSequentialSubtasks transformed { initialTaskDescription })
 
         edge(tryFindingParallelSubtasks forwardTo callTool onToolCalls { true })
